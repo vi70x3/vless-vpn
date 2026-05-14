@@ -20,7 +20,6 @@ import (
 
 func main() {
 	subURL := flag.String("sub", "", "VLESS subscription URL")
-	remoteHost := flag.String("host", "127.0.0.1", "Public host/IP for OpenVPN client config")
 	verbose := flag.Bool("v", false, "Show verbose logs from sing-box and openvpn")
 	flag.Parse()
 
@@ -69,7 +68,7 @@ func main() {
 		log.Fatalf("Failed to generate openvpn config: %v", err)
 	}
 
-	if err := vpn.GenerateClientConfig(*remoteHost, nodes[0].Host, ovpnKey, clientConfig); err != nil {
+	if err := vpn.GenerateClientConfig(ovpnKey, clientConfig); err != nil {
 		log.Fatalf("Failed to generate client config: %v", err)
 	}
 	absPath, _ := filepath.Abs(clientConfig)

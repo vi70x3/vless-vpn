@@ -23,7 +23,7 @@ const OpenVPNClientTemplate = `
 client
 dev tun
 proto tcp-client
-remote %s 1194
+remote 127.0.0.1 1194
 nobind
 resolv-retry infinite
 persist-key
@@ -38,8 +38,6 @@ redirect-gateway def1
 </secret>
 `
 
-
-
 func GenerateServerConfig(keyPath, configPath, statusPath string) error {
 	content := fmt.Sprintf(OpenVPNServerTemplate, keyPath, statusPath)
 	return os.WriteFile(configPath, []byte(content), 0644)
@@ -50,12 +48,12 @@ func GenerateStaticKey(keyPath string) error {
 	return cmd.Run()
 }
 
-func GenerateClientConfig(remoteHost, proxyHost, keyPath, configPath string) error {
+func GenerateClientConfig(keyPath, configPath string) error {
 	keyData, err := os.ReadFile(keyPath)
 	if err != nil {
 		return err
 	}
-	content := fmt.Sprintf(OpenVPNClientTemplate, remoteHost, proxyHost, string(keyData))
+	content := fmt.Sprintf(OpenVPNClientTemplate, string(keyData))
 	return os.WriteFile(configPath, []byte(content), 0644)
 }
 
