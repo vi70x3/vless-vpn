@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 )
+
 const OpenVPNServerTemplate = `
 dev tun_ovpn
 proto tcp-server
@@ -20,10 +21,10 @@ verb 3
 `
 
 const OpenVPNClientTemplate = `
-client
 dev tun
 proto tcp-client
 remote 127.0.0.1 1194
+ifconfig 10.8.0.2 10.8.0.1
 nobind
 persist-key
 persist-tun
@@ -32,13 +33,12 @@ mssfix 1200
 cipher AES-256-CBC
 data-ciphers AES-256-CBC
 data-ciphers-fallback AES-256-CBC
-redirect-gateway def1 bypass-dhcp bypass-dns
+redirect-gateway def1
 
 <secret>
 %s
 </secret>
 `
-
 
 func GenerateServerConfig(keyPath, configPath, statusPath string) error {
 	content := fmt.Sprintf(OpenVPNServerTemplate, keyPath, statusPath)
