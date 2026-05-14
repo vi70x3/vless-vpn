@@ -24,10 +24,19 @@ This tool automates the process of fetching VLESS subscriptions, configuring Sin
    go build -o vless-vpn cmd/vless-vpn/main.go
    ```
 
-2. Run the VPN:
+2. Run the VPN using the provided helper script:
    ```bash
-   sudo ./vless-vpn -sub "YOUR_SUBSCRIPTION_URL"
+   chmod +x run_vpn.sh
+   sudo ./run_vpn.sh "YOUR_SUBSCRIPTION_URL"
    ```
+
+The script automatically sets the required environment variables:
+```bash
+sudo ENABLE_DEPRECATED_LEGACY_DNS_SERVERS=true \
+     ENABLE_DEPRECATED_OUTBOUND_DNS_RULE_ITEM=true \
+     ENABLE_DEPRECATED_MISSING_DOMAIN_RESOLVER=true \
+     ./vless-vpn -sub "YOUR_SUBSCRIPTION_URL" -v
+```
 
 3. Stop the VPN:
    Press `Ctrl+C`. The tool will automatically clean up the routing table and restore network state.

@@ -36,20 +36,20 @@ func main() {
 		log.Fatal("No valid VLESS nodes found")
 	}
 
-	// 2. Prepare Config
-	os.MkdirAll("temp", 0755)
-	sbConfig := "temp/sing-box.json"
-	if err := proxy.GenerateConfig(nodes, sbConfig); err != nil {
-		log.Fatalf("Failed to generate config: %v", err)
-	}
-
 	// 3. Routing Loop Prevention (Bypass VLESS Server)
 	out, _ := exec.Command("ip", "route", "show", "default").Output()
 	fields := strings.Fields(string(out))
 	physDev, gwIP := "", ""
 	for i, f := range fields {
-		if f == "dev" && i+1 < len(fields) { physDev = fields[i+1] }
-		if f == "via" && i+1 < len(fields) { gwIP = fields[i+1] }
+	        if f == "dev" && i+1 < len(fields) { physDev = fields[i+1] }
+	        if f == "via" && i+1 < len(fields) { gwIP = fields[i+1] }
+	}
+
+	// 2. Prepare Config
+	os.MkdirAll("temp", 0755)
+	sbConfig := "temp/sing-box.json"
+	if err := proxy.GenerateConfig(nodes, sbConfig, physDev); err != nil {
+	        log.Fatalf("Failed to generate config: %v", err)
 	}
 
 	ips, err := net.LookupIP(nodes[0].Host)
