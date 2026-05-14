@@ -177,11 +177,18 @@ func GenerateConfig(nodes []subscription.Node, configPath string) error {
 	return os.WriteFile(configPath, data, 0644)
 }
 
-func RunSingBox(configPath string) (*exec.Cmd, error) {
+func RunSingBox(configPath string, verbose bool) (*exec.Cmd, error) {
 	fmt.Printf("[debug] Running sing-box with config: %s\n", configPath)
 	cmd := exec.Command("sing-box", "run", "-c", configPath)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	if verbose {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	} else {
+		logFile, _ := os.OpenFile("temp/sing-box.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		cmd.Stdout = logFile
+		cmd.Stderr = logFile
+		fmt.Println("[*] Sing-box logs redirected to temp/sing-box.log")
+	}
 	err := cmd.Start()
 	return cmd, err
 }

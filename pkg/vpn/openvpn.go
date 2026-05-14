@@ -50,11 +50,18 @@ func GenerateClientConfig(remoteHost, keyPath, configPath string) error {
 	return os.WriteFile(configPath, []byte(content), 0644)
 }
 
-func RunOpenVPN(configPath string) (*exec.Cmd, error) {
+func RunOpenVPN(configPath string, verbose bool) (*exec.Cmd, error) {
 	fmt.Printf("[debug] Running openvpn with config: %s\n", configPath)
 	cmd := exec.Command("openvpn", "--config", configPath, "--allow-deprecated-insecure-static-crypto")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	if verbose {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	} else {
+		logFile, _ := os.OpenFile("temp/openvpn.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		cmd.Stdout = logFile
+		cmd.Stderr = logFile
+		fmt.Println("[*] OpenVPN logs redirected to temp/openvpn.log")
+	}
 	err := cmd.Start()
 	return cmd, err
 }

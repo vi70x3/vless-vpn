@@ -20,6 +20,7 @@ import (
 func main() {
 	subURL := flag.String("sub", "", "VLESS subscription URL")
 	remoteHost := flag.String("host", "127.0.0.1", "Public host/IP for OpenVPN client config")
+	verbose := flag.Bool("v", false, "Show verbose logs from sing-box and openvpn")
 	flag.Parse()
 
 	if *subURL == "" {
@@ -84,13 +85,13 @@ func main() {
 
 	// 4. Run Processes
 	fmt.Println("[*] Starting processes...")
-	sbCmd, err := proxy.RunSingBox(sbConfig)
+	sbCmd, err := proxy.RunSingBox(sbConfig, *verbose)
 	if err != nil {
 		log.Fatalf("Failed to start sing-box: %v", err)
 	}
 	defer sbCmd.Process.Kill()
 
-	ovpnCmd, err := vpn.RunOpenVPN(ovpnConfig)
+	ovpnCmd, err := vpn.RunOpenVPN(ovpnConfig, *verbose)
 	if err != nil {
 		log.Fatalf("Failed to start openvpn: %v", err)
 	}
@@ -125,24 +126,43 @@ func connectToSelf(clientConfig string) {
 	absPath, _ := filepath.Abs(clientConfig)
 	cmdStr := fmt.Sprintf("sudo openvpn --config %s --allow-deprecated-insecure-static-crypto", absPath)
 	
-	fmt.Printf("[*] Attempting to spawn client: %s\n", cmdStr)
+	sudoUser := os.Getenv("SUDO_USER")
+	if sudoUser == "" {
+		sudoUser = "root"
+	}
+
+	fmt.Printf("[*] Attempting to spawn client as user %s: %s\n", sudoUser, cmdStr)
 	
+	terminalCmd := cmdStr + "; exec bash"
+
 	// Try common terminal emulators
+	display := os.Getenv("DISPLAY")
+	xauth := os.Getenv("XAUTHORITY")
+	
+	prefix := []string{"sudo", "-u", sudoUser, "env", "DISPLAY=" + display, "XAUTHORITY=" + xauth}
+	if sudoUser == "root" {
+		prefix = []string{} 
+	}
+
 	terminals := [][]string{
-		{"gnome-terminal", "--", "bash", "-c", cmdStr + "; exec bash"},
-		{"konsole", "-e", "bash", "-c", cmdStr + "; exec bash"},
-		{"xfce4-terminal", "-e", "bash -c '" + cmdStr + "; exec bash'"},
-		{"xterm", "-e", "bash", "-c", cmdStr + "; exec bash"},
+		{"gnome-terminal", "--", "bash", "-c", terminalCmd},
+		{"konsole", "-e", "bash", "-c", terminalCmd},
+		{"xfce4-terminal", "-e", "bash", "-c", terminalCmd},
+		{"kitty", "bash", "-c", terminalCmd},
+		{"alacritty", "-e", "bash", "-c", terminalCmd},
+		{"foot", "bash", "-c", terminalCmd},
+		{"xterm", "-e", "bash", "-c", terminalCmd},
 	}
 
 	for _, t := range terminals {
-		cmd := exec.Command(t[0], t[1:]...)
+		fullArgs := append(prefix, t...)
+		cmd := exec.Command(fullArgs[0], fullArgs[1:]...)
 		if err := cmd.Start(); err == nil {
 			fmt.Printf("[+] Spawned client in %s\n", t[0])
 			return
 		}
 	}
 	
-	fmt.Println("[!] Could not find a supported terminal emulator. Please run the command manually in a new window:")
+	fmt.Println("[!] Could not find a supported terminal emulator or failed to spawn. Please run the command manually in a new window:")
 	fmt.Printf("    %s\n", cmdStr)
 }
