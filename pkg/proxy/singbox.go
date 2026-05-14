@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"vless-openvpn-adapter/pkg/subscription"
@@ -26,7 +27,6 @@ type InboundConfig struct {
 	AutoRoute         bool   `json:"auto_route,omitempty"`
 	StrictRoute       bool   `json:"strict_route,omitempty"`
 	Stack             string `json:"stack,omitempty"`
-	Sniff             bool   `json:"sniff,omitempty"`
 }
 
 type OutboundConfig struct {
@@ -51,8 +51,9 @@ type RouteConfig struct {
 }
 
 type RuleConfig struct {
+	Action   string   `json:"action,omitempty"`
 	Protocol []string `json:"protocol,omitempty"`
-	Outbound string   `json:"outbound"`
+	Outbound string   `json:"outbound,omitempty"`
 }
 
 func GenerateConfig(nodes []subscription.Node, configPath string) error {
@@ -66,15 +67,20 @@ func GenerateConfig(nodes []subscription.Node, configPath string) error {
 				Address:       "172.16.0.1/30",
 				AutoRoute:     false,
 				Stack:         "system",
-				Sniff:         true,
 			},
 		},
 		Route: RouteConfig{
 			Rules: []RuleConfig{
-				{Outbound: "proxy"},
+				{
+					Action: "sniff",
+				},
+				{
+					Outbound: "proxy",
+				},
 			},
 		},
 	}
+
 
 	// Use the first node as the proxy
 	if len(nodes) > 0 {
@@ -125,6 +131,7 @@ func GenerateConfig(nodes []subscription.Node, configPath string) error {
 }
 
 func RunSingBox(configPath string) (*exec.Cmd, error) {
+	fmt.Printf("[debug] Running sing-box with config: %s\n", configPath)
 	cmd := exec.Command("sing-box", "run", "-c", configPath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

@@ -45,7 +45,8 @@ func GenerateClientConfig(remoteHost, keyPath, configPath string) error {
 }
 
 func RunOpenVPN(configPath string) (*exec.Cmd, error) {
-	cmd := exec.Command("openvpn", "--config", configPath)
+	fmt.Printf("[debug] Running openvpn with config: %s\n", configPath)
+	cmd := exec.Command("openvpn", "--config", configPath, "--allow-deprecated-insecure-static-crypto")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Start()
