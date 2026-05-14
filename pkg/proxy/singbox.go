@@ -25,14 +25,12 @@ type DNSServerConfig struct {
 	Tag      string `json:"tag"`
 	Address  string `json:"address"`
 	Detour   string `json:"detour,omitempty"`
-	Strategy string `json:"strategy,omitempty"`
 }
 
 type DNSRuleConfig struct {
-	Outbound string   `json:"outbound,omitempty"`
-	Server   string   `json:"server,omitempty"`
-	Domain   []string `json:"domain,omitempty"`
-	Action   string   `json:"action,omitempty"`
+	Action string   `json:"action,omitempty"`
+	Server string   `json:"server,omitempty"`
+	Domain []string `json:"domain,omitempty"`
 }
 
 type LogConfig struct {
