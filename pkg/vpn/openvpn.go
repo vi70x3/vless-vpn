@@ -20,18 +20,24 @@ verb 3
 `
 
 const OpenVPNClientTemplate = `
-remote %s 1194
+client
 dev tun
-nobind
-ifconfig 10.8.0.2 10.8.0.1
 proto udp
+remote %s 1194
+resolv-retry infinite
+nobind
+persist-key
+persist-tun
 cipher AES-256-CBC
 data-ciphers AES-256-CBC
 data-ciphers-fallback AES-256-CBC
 redirect-gateway def1
+
 # Bypass the VPN for the VLESS server and DNS to avoid loops
+# Syntax: route [network] [mask] [gateway]
 route %s 255.255.255.255 net_gateway
 route 8.8.8.8 255.255.255.255 net_gateway
+
 <secret>
 %s
 </secret>

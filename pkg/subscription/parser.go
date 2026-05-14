@@ -38,9 +38,10 @@ type singBoxConfig struct {
 	Outbounds []json.RawMessage `json:"outbounds"`
 }
 
-type outboundMinimal struct {
-	Type string `json:"type"`
-	Tag  string `json:"tag"`
+type outboundFull struct {
+	Type   string `json:"type"`
+	Tag    string `json:"tag"`
+	Server string `json:"server"`
 }
 
 func ParseLinks(data string) ([]Node, error) {
@@ -49,13 +50,14 @@ func ParseLinks(data string) ([]Node, error) {
 	if err := json.Unmarshal([]byte(data), &sbCfg); err == nil && len(sbCfg.Outbounds) > 0 {
 		var nodes []Node
 		for _, raw := range sbCfg.Outbounds {
-			var out outboundMinimal
+			var out outboundFull
 			if err := json.Unmarshal(raw, &out); err == nil {
 				// Only include actual proxy protocols
 				if out.Type == "vless" || out.Type == "trojan" || out.Type == "hysteria2" || out.Type == "vmess" {
 					nodes = append(nodes, Node{
 						Protocol: out.Type,
 						Remark:   out.Tag,
+						Host:     out.Server,
 						Raw:      raw,
 					})
 				}
