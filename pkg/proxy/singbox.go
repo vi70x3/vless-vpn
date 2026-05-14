@@ -32,6 +32,7 @@ type DNSRuleConfig struct {
 	Outbound string   `json:"outbound,omitempty"`
 	Server   string   `json:"server,omitempty"`
 	Domain   []string `json:"domain,omitempty"`
+	Action   string   `json:"action,omitempty"`
 }
 
 type LogConfig struct {
@@ -73,6 +74,7 @@ type RuleConfig struct {
 	Action   string   `json:"action,omitempty"`
 	Protocol []string `json:"protocol,omitempty"`
 	Outbound string   `json:"outbound,omitempty"`
+	Domain   []string `json:"domain,omitempty"`
 }
 
 func GenerateConfig(nodes []subscription.Node, configPath string) error {
@@ -85,13 +87,10 @@ func GenerateConfig(nodes []subscription.Node, configPath string) error {
 					Address: "8.8.8.8",
 					Detour:  "direct",
 				},
-				{
-					Tag:     "dns-proxy",
-					Address: "1.1.1.1",
-				},
 			},
 			Rules: []DNSRuleConfig{
 				{
+					Action: "route",
 					Server: "dns-direct",
 					Domain: []string{}, // Will be populated
 				},
@@ -113,21 +112,30 @@ func GenerateConfig(nodes []subscription.Node, configPath string) error {
 					Action: "sniff",
 				},
 				{
+					Protocol: []string{"dns"},
+					Action:   "hijack-dns",
+				},
+				{
+					Action:   "route",
+					Outbound: "direct",
+					Domain:   []string{}, // Will be populated
+				},
+				{
 					Outbound: "proxy",
 				},
 			},
 		},
 	}
 
-
 	// Use the first node as the proxy
 	if len(nodes) > 0 {
 		node := nodes[0]
 		var outboundRaw json.RawMessage
 
-		// Bootstrap DNS: add proxy host to direct DNS rules if it's a domain
+		// Bootstrap DNS: route proxy domain via direct DNS and direct outbound
 		if node.Host != "" {
 			cfg.DNS.Rules[0].Domain = append(cfg.DNS.Rules[0].Domain, node.Host)
+			cfg.Route.Rules[2].Domain = append(cfg.Route.Rules[2].Domain, node.Host)
 		}
 
 		if node.Raw != nil {
