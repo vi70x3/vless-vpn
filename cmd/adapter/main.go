@@ -83,6 +83,23 @@ func main() {
 		fmt.Printf("[!] Warning: Failed to setup iptables: %v\n", err)
 	}
 
+	// Detect physical interface and add static routes
+	out, _ := exec.Command("ip", "route", "get", "8.8.8.8").Output()
+	fields := strings.Fields(string(out))
+	physDev := ""
+	for i, f := range fields {
+		if f == "dev" && i+1 < len(fields) {
+			physDev = fields[i+1]
+			break
+		}
+	}
+
+	if physDev != "" {
+		fmt.Printf("[*] Using physical interface: %s\n", physDev)
+		network.AddRoute(nodes[0].Host, physDev)
+		network.AddRoute("8.8.8.8", physDev)
+	}
+
 	// 4. Run Processes
 	fmt.Println("[*] Starting processes...")
 	sbCmd, err := proxy.RunSingBox(sbConfig, *verbose)
@@ -119,6 +136,10 @@ func main() {
 	// 6. Cleanup
 	fmt.Println("\n[*] Cleaning up...")
 	network.CleanupIPTables()
+	if physDev != "" {
+		network.DelRoute(nodes[0].Host, physDev)
+		network.DelRoute("8.8.8.8", physDev)
+	}
 	fmt.Println("[+] Done.")
 }
 

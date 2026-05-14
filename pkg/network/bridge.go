@@ -48,3 +48,13 @@ func CleanupIPTables() error {
 
 	return nil
 }
+
+func AddRoute(dest, dev string) error {
+	cmd := exec.Command("ip", "route", "add", dest, "dev", dev)
+	return cmd.Run()
+}
+
+func DelRoute(dest, dev string) error {
+	cmd := exec.Command("ip", "route", "del", dest, "dev", dev)
+	return cmd.Run()
+}
