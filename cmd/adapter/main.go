@@ -101,18 +101,23 @@ func main() {
 	var vlessIP string
 	if physDev != "" && gwIP != "" {
 		ips, err := net.LookupIP(nodes[0].Host)
-		vlessIP = nodes[0].Host
+		vlessIP := nodes[0].Host
 		if err == nil && len(ips) > 0 {
 			vlessIP = ips[0].String()
 		}
 
-		fmt.Printf("[*] Bypassing VPN for VLESS IP: %s (GW: %s, Dev: %s)\n", vlessIP, gwIP, physDev)
-		exec.Command("ip", "route", "add", vlessIP, "via", gwIP, "dev", physDev).Run()
-		exec.Command("ip", "route", "add", "8.8.8.8", "via", gwIP, "dev", physDev).Run()
-		exec.Command("ip", "route", "add", "1.1.1.1", "via", gwIP, "dev", physDev).Run()
-		exec.Command("ip", "route", "add", "9.9.9.9", "via", gwIP, "dev", physDev).Run()
+		fmt.Printf("[*] Bypassing VPN for VLESS IP: %s and DNS servers (GW: %s, Dev: %s)\n", vlessIP, gwIP, physDev)
+		targets := []string{vlessIP, "8.8.8.8", "8.8.4.4", "1.1.1.1", "9.9.9.9"}
+		for _, target := range targets {
+			exec.Command("ip", "route", "add", target, "via", gwIP, "dev", physDev).Run()
+		}
+
+		// Force DNS resolution for physical interface
+		exec.Command("resolvectl", "dns", physDev, "8.8.8.8", "1.1.1.1").Run()
+		exec.Command("resolvectl", "default-route", physDev, "yes").Run()
 		time.Sleep(2 * time.Second) 
 	}
+
 
 	// 4. Run Processes
 	fmt.Println("[*] Starting processes...")

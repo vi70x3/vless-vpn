@@ -27,7 +27,7 @@ proto tcp-client
 remote 127.0.0.1 1194
 ifconfig 10.8.0.2 10.8.0.1
 tun-mtu 1300
-mssfix 1200
+mssfix 1100
 nobind
 persist-key
 persist-tun
