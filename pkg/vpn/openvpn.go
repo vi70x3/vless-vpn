@@ -23,12 +23,14 @@ const OpenVPNClientTemplate = `
 remote %s 1194
 dev tun
 ifconfig 10.8.0.2 10.8.0.1
-secret %s
 proto udp
 cipher AES-256-CBC
 data-ciphers AES-256-CBC
 data-ciphers-fallback AES-256-CBC
 redirect-gateway def1
+<secret>
+%s
+</secret>
 `
 
 func GenerateServerConfig(keyPath, configPath, statusPath string) error {

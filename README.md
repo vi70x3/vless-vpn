@@ -22,8 +22,11 @@ A lightweight bridge that converts VLESS proxy nodes into a standard OpenVPN ser
 1. **Build or Download** the `adapter` binary.
 2. **Start the adapter** (requires sudo/admin for networking):
    ```bash
-   # Standard run
+   # Standard run (silent logs)
    sudo ./adapter -sub "YOUR_SUBSCRIPTION_URL"
+
+   # Verbose run (show all proxy/vpn logs)
+   sudo ./adapter -sub "YOUR_SUBSCRIPTION_URL" -v
 
    # If you see "legacy DNS servers" errors, use this hack:
    sudo ENABLE_DEPRECATED_LEGACY_DNS_SERVERS=true sh -c './adapter -sub "YOUR_SUBSCRIPTION_URL"'
