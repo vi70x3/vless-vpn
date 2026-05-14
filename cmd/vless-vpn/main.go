@@ -23,7 +23,7 @@ func main() {
 		log.Fatal("Subscription URL is required. Use -sub <url>")
 	}
 
-	fmt.Println("--- VLESS Native Adapter ---")
+	fmt.Println("--- VLESS Native VPN ---")
 
 	// 1. Fetch Subscription
 	fmt.Println("[*] Fetching subscription...")
