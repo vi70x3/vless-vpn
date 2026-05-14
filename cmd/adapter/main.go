@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"vless-openvpn-adapter/pkg/network"
 	"vless-openvpn-adapter/pkg/proxy"
@@ -94,6 +97,17 @@ func main() {
 	defer ovpnCmd.Process.Kill()
 
 	fmt.Println("[+] Adapter is running!")
+
+	// Offer to connect
+	go func() {
+		fmt.Print("\n[?] Do you want to connect to this adapter now? (y/n): ")
+		reader := bufio.NewReader(os.Stdin)
+		response, _ := reader.ReadString('\n')
+		if strings.TrimSpace(strings.ToLower(response)) == "y" {
+			connectToSelf(clientConfig)
+		}
+	}()
+
 	fmt.Println("Press Ctrl+C to stop.")
 
 	// 5. Wait for Signal
@@ -105,4 +119,30 @@ func main() {
 	fmt.Println("\n[*] Cleaning up...")
 	network.CleanupIPTables()
 	fmt.Println("[+] Done.")
+}
+
+func connectToSelf(clientConfig string) {
+	absPath, _ := filepath.Abs(clientConfig)
+	cmdStr := fmt.Sprintf("sudo openvpn --config %s --allow-deprecated-insecure-static-crypto", absPath)
+	
+	fmt.Printf("[*] Attempting to spawn client: %s\n", cmdStr)
+	
+	// Try common terminal emulators
+	terminals := [][]string{
+		{"gnome-terminal", "--", "bash", "-c", cmdStr + "; exec bash"},
+		{"konsole", "-e", "bash", "-c", cmdStr + "; exec bash"},
+		{"xfce4-terminal", "-e", "bash -c '" + cmdStr + "; exec bash'"},
+		{"xterm", "-e", "bash", "-c", cmdStr + "; exec bash"},
+	}
+
+	for _, t := range terminals {
+		cmd := exec.Command(t[0], t[1:]...)
+		if err := cmd.Start(); err == nil {
+			fmt.Printf("[+] Spawned client in %s\n", t[0])
+			return
+		}
+	}
+	
+	fmt.Println("[!] Could not find a supported terminal emulator. Please run the command manually in a new window:")
+	fmt.Printf("    %s\n", cmdStr)
 }
