@@ -8,10 +8,10 @@ import (
 )
 
 type SingBoxConfig struct {
-	Log       LogConfig       `json:"log"`
-	Inbounds  []InboundConfig  `json:"inbounds"`
-	Outbounds []OutboundConfig `json:"outbounds"`
-	Route     RouteConfig     `json:"route"`
+	Log       LogConfig         `json:"log"`
+	Inbounds  []InboundConfig    `json:"inbounds"`
+	Outbounds []json.RawMessage `json:"outbounds"`
+	Route     RouteConfig       `json:"route"`
 }
 
 type LogConfig struct {
@@ -64,7 +64,7 @@ func GenerateConfig(nodes []subscription.Node, configPath string) error {
 				Tag:           "tun-in",
 				InterfaceName: "tun_singbox",
 				Address:       "172.16.0.1/30",
-				AutoRoute:     false, // We will handle routing manually or via iptables
+				AutoRoute:     false,
 				Stack:         "system",
 				Sniff:         true,
 			},
@@ -76,29 +76,45 @@ func GenerateConfig(nodes []subscription.Node, configPath string) error {
 		},
 	}
 
-	// For simplicity, we just use the first node as the proxy for now
+	// Use the first node as the proxy
 	if len(nodes) > 0 {
 		node := nodes[0]
-		port := 443
-		// Parse port logic would go here
-		
-		cfg.Outbounds = append(cfg.Outbounds, OutboundConfig{
-			Type:       "vless",
-			Tag:        "proxy",
-			Server:     node.Host,
-			ServerPort: port, // Needs proper parsing
-			UUID:       node.UUID,
-			TLS: &TLSConfig{
-				Enabled:    true,
-				ServerName: node.Host, // Simplified
-			},
-		})
+		var outboundRaw json.RawMessage
+
+		if node.Raw != nil {
+			// Override tag to "proxy" so our routing rule works
+			var m map[string]interface{}
+			if err := json.Unmarshal(node.Raw, &m); err == nil {
+				m["tag"] = "proxy"
+				outboundRaw, _ = json.Marshal(m)
+			} else {
+				outboundRaw = node.Raw
+			}
+		} else {
+			// Fallback to manual construction (for vless:// links)
+			port := 443
+			manual := OutboundConfig{
+				Type:       "vless",
+				Tag:        "proxy",
+				Server:     node.Host,
+				ServerPort: port,
+				UUID:       node.UUID,
+				TLS: &TLSConfig{
+					Enabled:    true,
+					ServerName: node.Host,
+				},
+			}
+			outboundRaw, _ = json.Marshal(manual)
+		}
+		cfg.Outbounds = append(cfg.Outbounds, outboundRaw)
 	}
 
-	cfg.Outbounds = append(cfg.Outbounds, OutboundConfig{
+	direct := OutboundConfig{
 		Type: "direct",
 		Tag:  "direct",
-	})
+	}
+	directRaw, _ := json.Marshal(direct)
+	cfg.Outbounds = append(cfg.Outbounds, directRaw)
 
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {

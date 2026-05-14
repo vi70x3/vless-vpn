@@ -2,6 +2,7 @@ package subscription
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,6 +16,7 @@ type Node struct {
 	Port     string
 	Query    string
 	Remark   string
+	Raw      json.RawMessage
 }
 
 func FetchSubscription(url string) (string, error) {
@@ -32,7 +34,38 @@ func FetchSubscription(url string) (string, error) {
 	return string(body), nil
 }
 
+type singBoxConfig struct {
+	Outbounds []json.RawMessage `json:"outbounds"`
+}
+
+type outboundMinimal struct {
+	Type string `json:"type"`
+	Tag  string `json:"tag"`
+}
+
 func ParseLinks(data string) ([]Node, error) {
+	// Try parsing as Sing-box JSON first
+	var sbCfg singBoxConfig
+	if err := json.Unmarshal([]byte(data), &sbCfg); err == nil && len(sbCfg.Outbounds) > 0 {
+		var nodes []Node
+		for _, raw := range sbCfg.Outbounds {
+			var out outboundMinimal
+			if err := json.Unmarshal(raw, &out); err == nil {
+				// Only include actual proxy protocols
+				if out.Type == "vless" || out.Type == "trojan" || out.Type == "hysteria2" || out.Type == "vmess" {
+					nodes = append(nodes, Node{
+						Protocol: out.Type,
+						Remark:   out.Tag,
+						Raw:      raw,
+					})
+				}
+			}
+		}
+		if len(nodes) > 0 {
+			return nodes, nil
+		}
+	}
+
 	// Try to decode Base64
 	decoded, err := base64.StdEncoding.DecodeString(strings.TrimSpace(data))
 	if err != nil {
